@@ -206,6 +206,12 @@ void intBitSetResize(IntBitSet *const bitset, register const unsigned int alloca
     }
 }
 
+void intBitSetTrim(IntBitSet *const bitset) {
+    int last = intBitSetGetLast(bitset);
+    bitset->allocated = ((last + 1) / wordbitsize + 1);
+    bitset->bitset = PyMem_Realloc(bitset->bitset, bitset->allocated * wordbytesize);
+}
+
 bool_t intBitSetIsInElem(const IntBitSet * const bitset, register const unsigned int elem) {
     return ((elem < bitset->allocated * wordbitsize) ?
             (bitset->bitset[elem / wordbitsize] & ((word_t) 1 << ((word_t)elem % (word_t)wordbitsize))) != 0 : bitset->trailing_bits != 0);
@@ -445,9 +451,9 @@ intbitset_cmp_t intBitSetCompare(IntBitSet *const x, IntBitSet *const y) {
     register intbitset_cmp_t ret = {0, 0, 0, 0};
 
     xbase = x->bitset;
-    xend = x->bitset + x->allocated;
+    xend = xbase + x->allocated;
     ybase = y->bitset;
-    yend = y->bitset + y->allocated;
+    yend = ybase + y->allocated;
 
     for (; xbase < xend && ybase < yend; ++xbase, ++ybase) {
         ret.intersection_size += intWordGetTot(*(xbase) & *(ybase));

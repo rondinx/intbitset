@@ -113,6 +113,7 @@ cdef extern from "intbitset.h":
     int intBitSetDifferenceSize(IntBitSet *x, IntBitSet *y)
     int intBitSetXorSize(IntBitSet *x, IntBitSet *y)
     intbitset_cmp_t intBitSetCompare(IntBitSet *x, IntBitSet *y)
+    void intBitSetTrim(IntBitSet *const bitset)
 
 __maxelem__ = maxelem
 
@@ -736,6 +737,9 @@ cdef class intbitset:
     def compare(self not None, intbitset rhs not None):
         cdef intbitset_cmp_t cmp = intBitSetCompare(self.bitset, rhs.bitset)
         return cmp.intersection_size, cmp.union_size, cmp.diff1_size, cmp.diff2_size
+
+    def trim(self not None):
+        intBitSetTrim(self.bitset)
 
     cpdef update_with_signs(intbitset self, rhs):
         """Given a dictionary rhs whose keys are integers, remove all the integers

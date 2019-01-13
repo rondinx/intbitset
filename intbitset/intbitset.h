@@ -82,6 +82,7 @@ int intBitSetAdaptMin(IntBitSet *const x, IntBitSet *const y);
 int intBitSetGetNext(const IntBitSet *const x, register int last);
 int intBitSetGetLast(const IntBitSet *const x);
 intbitset_cmp_t intBitSetCompare(IntBitSet *const x, IntBitSet *const y);
+void intBitSetTrim(IntBitSet *const bitset);
 /** Compare.
  * Compare two intbitset.
  * Returns 0 if the two bitset are equals.
