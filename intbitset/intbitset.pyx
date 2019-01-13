@@ -75,6 +75,11 @@ cdef extern from "intbitset.h":
         word_t trailing_bits
         int tot
         word_t *bitset
+    ctypedef struct intbitset_cmp_t:
+        int intersection_size
+        int union_size
+        int diff1_size
+        int diff2_size
     int wordbytesize
     int wordbitsize
     int maxelem
@@ -107,6 +112,7 @@ cdef extern from "intbitset.h":
     int intBitSetIntersectionSize(IntBitSet *x, IntBitSet *y)
     int intBitSetDifferenceSize(IntBitSet *x, IntBitSet *y)
     int intBitSetXorSize(IntBitSet *x, IntBitSet *y)
+    intbitset_cmp_t intBitSetCompare(IntBitSet *x, IntBitSet *y)
 
 __maxelem__ = maxelem
 
@@ -691,7 +697,7 @@ cdef class intbitset:
 
     def union_size(self not None, intbitset rhs not None):
         """Return the union size between two sets, without allocating a new intbitset."""
-        return intBitSetUnionSize(self.bitset, rhs.bitset);
+        return intBitSetUnionSize(self.bitset, rhs.bitset)
 
     def intersection(self not None, *args):
         """Return a new intbitset with elements common to the intbitset and all others."""
@@ -704,7 +710,7 @@ cdef class intbitset:
 
     def intersection_size(self not None, intbitset rhs not None):
         """Return the intersection size between two sets, without allocating a new intbitset."""
-        return intBitSetIntersectionSize(self.bitset, rhs.bitset);
+        return intBitSetIntersectionSize(self.bitset, rhs.bitset)
 
     def difference(self not None, *args):
         """Return a new intbitset with elements from the intbitset that are not in the others."""
@@ -717,15 +723,19 @@ cdef class intbitset:
 
     def difference_size(self not None, intbitset rhs not None):
         """Returns number of elements in this intbitset that are not in the other, without allocating a new intbitset."""
-        return intBitSetDifferenceSize(self.bitset, rhs.bitset);
+        return intBitSetDifferenceSize(self.bitset, rhs.bitset)
 
     def symmetric_difference_size(self not None, intbitset rhs not None):
         """Return the symmetric difference size between two sets, without allocating a new intbitset."""
-        return intBitSetXorSize(self.bitset, rhs.bitset);
+        return intBitSetXorSize(self.bitset, rhs.bitset)
 
     def isdisjoint(self not None, intbitset rhs not None):
         """Return True if two intbitsets have a null intersection."""
-        return self.intersection_size(rhs) == 0;
+        return self.intersection_size(rhs) == 0
+
+    def compare(self not None, intbitset rhs not None):
+        cdef intbitset_cmp_t cmp = intBitSetCompare(self.bitset, rhs.bitset)
+        return cmp.intersection_size, cmp.union_size, cmp.diff1_size, cmp.diff2_size
 
     cpdef update_with_signs(intbitset self, rhs):
         """Given a dictionary rhs whose keys are integers, remove all the integers

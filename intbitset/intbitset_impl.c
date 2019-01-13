@@ -391,6 +391,25 @@ int intBitSetDifferenceSize(IntBitSet *const x, IntBitSet *const y) {
     return tot;
 }
 
+intbitset_cmp_t intBitSetCompare(IntBitSet *const x, IntBitSet *const y) {
+    register word_t *xbase;
+    register word_t *xend;
+    register word_t *ybase;
+    intbitset_cmp_t ret = {0, 0, 0, 0};
+
+    xbase = x->bitset;
+    xend = x->bitset+intBitSetAdaptMax(x, y);
+    ybase = y->bitset;
+    for (; xbase < xend; ++xbase, ++ybase) {
+        ret.intersection_size += intWordGetTot(*(xbase) & *(ybase));
+        ret.union_size += intWordGetTot(*(xbase) | *(ybase));
+        ret.diff1_size += intWordGetTot(*(xbase) & ~*(ybase));
+        ret.diff2_size += intWordGetTot(*(ybase) & ~*(xbase));
+    }
+    return ret;
+}
+
+
 IntBitSet *intBitSetSub(IntBitSet *const x, IntBitSet *const y) {
     register word_t *xbase;
     register word_t *ybase;

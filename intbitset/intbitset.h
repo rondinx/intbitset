@@ -48,6 +48,13 @@ typedef struct {
     word_t *bitset;
 } IntBitSet;
 
+typedef struct {
+    int intersection_size;
+    int union_size;
+    int diff1_size;
+    int diff2_size;
+} intbitset_cmp_t;
+
 IntBitSet *intBitSetCreate(register const int size, const bool_t trailing_bits);
 IntBitSet *intBitSetCreateFromBuffer(const void * const buf, const Py_ssize_t bufsize);
 IntBitSet *intBitSetResetFromBuffer(IntBitSet *const bitset, const void *const buf, const Py_ssize_t bufsize);
@@ -74,6 +81,7 @@ int intBitSetAdaptMax(IntBitSet *const x, IntBitSet *const y);
 int intBitSetAdaptMin(IntBitSet *const x, IntBitSet *const y);
 int intBitSetGetNext(const IntBitSet *const x, register int last);
 int intBitSetGetLast(const IntBitSet *const x);
+intbitset_cmp_t intBitSetCompare(IntBitSet *const x, IntBitSet *const y);
 /** Compare.
  * Compare two intbitset.
  * Returns 0 if the two bitset are equals.
