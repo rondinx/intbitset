@@ -169,6 +169,10 @@ int intWordGetTot(word_t word) {
     register int i;
 #endif
     register int tot;
+
+    if (word == 0)
+        return 0;
+
 #ifdef __GNUC__
     // See:
     // <http://stackoverflow.com/questions/109023/best-algorithm-to-count-the-number-of-set-bits-in-a-32-bit-integer>
@@ -290,19 +294,32 @@ IntBitSet *intBitSetUnion(IntBitSet *const x, IntBitSet *const y) {
 }
 
 int intBitSetUnionSize(IntBitSet *const x, IntBitSet *const y) {
-    register word_t *xbase;
-    register word_t *xend;
-    register word_t *ybase;
-    register word_t xorWord;
-    register int tot = 0;
-    xbase = x->bitset;
-    xend = x->bitset+intBitSetAdaptMax(x, y);
-    ybase = y->bitset;
-    for (; xbase < xend; ++xbase, ++ybase) {
-        xorWord = *(xbase) | *(ybase);
-        tot += intWordGetTot(xorWord);
+    register word_t *shortbase;
+    register word_t *shortend;
+    register word_t *longbase;
+    register word_t *longend;
+    register int union_size = 0;
+
+    if (x->allocated > y->allocated) {
+        longbase = x->bitset;
+        longend = longbase + x->allocated;
+        shortbase = y->bitset;
+        shortend = shortbase + y->allocated;
+    } else {
+        longbase = y->bitset;
+        longend = longbase + y->allocated;
+        shortbase = x->bitset;
+        shortend = shortbase + x->allocated;
     }
-    return tot;
+
+    for (; shortbase < shortend; ++shortbase, ++longbase) {
+        union_size += intWordGetTot(*(shortbase) | *(longbase));
+    }
+    for (; longbase < longend; ++longbase) {
+        union_size += intWordGetTot(*(longbase));
+    }
+
+    return union_size;
 }
 
 IntBitSet *intBitSetXor(IntBitSet *const x, IntBitSet *const y) {
@@ -325,19 +342,32 @@ IntBitSet *intBitSetXor(IntBitSet *const x, IntBitSet *const y) {
 }
 
 int intBitSetXorSize(IntBitSet *const x, IntBitSet *const y) {
-    register word_t *xbase;
-    register word_t *xend;
-    register word_t *ybase;
-    register word_t xorWord;
-    register int tot = 0;
-    xbase = x->bitset;
-    xend = x->bitset+intBitSetAdaptMax(x, y);
-    ybase = y->bitset;
-    for (; xbase < xend; ++xbase, ++ybase) {
-        xorWord = *(xbase) ^ *(ybase);
-        tot += intWordGetTot(xorWord);
+    register word_t *shortbase;
+    register word_t *shortend;
+    register word_t *longbase;
+    register word_t *longend;
+    register int xor_size = 0;
+
+    if (x->allocated > y->allocated) {
+        longbase = x->bitset;
+        longend = longbase + x->allocated;
+        shortbase = y->bitset;
+        shortend = shortbase + y->allocated;
+    } else {
+        longbase = y->bitset;
+        longend = longbase + y->allocated;
+        shortbase = x->bitset;
+        shortend = shortbase + x->allocated;
     }
-    return tot;
+
+    for (; shortbase < shortend; ++shortbase, ++longbase) {
+        xor_size += intWordGetTot(*(shortbase) ^ *(longbase));
+    }
+    for (; longbase < longend; ++longbase) {
+        xor_size += intWordGetTot(*(longbase));
+    }
+
+    return xor_size;
 }
 
 IntBitSet *intBitSetIntersection(IntBitSet *const x, IntBitSet *const y) {
@@ -360,52 +390,85 @@ IntBitSet *intBitSetIntersection(IntBitSet *const x, IntBitSet *const y) {
 }
 
 int intBitSetIntersectionSize(IntBitSet *const x, IntBitSet *const y) {
-    register word_t *xbase;
-    register word_t *xend;
-    register word_t *ybase;
-    register word_t intersectionWord;
-    register int tot = 0;
-    xbase = x->bitset;
-    xend = x->bitset+intBitSetAdaptMin(x, y);
-    ybase = y->bitset;
-    for (; xbase < xend; ++xbase, ++ybase) {
-        intersectionWord = *(xbase) & *(ybase);
-        tot += intWordGetTot(intersectionWord);
+    register word_t *shortbase;
+    register word_t *shortend;
+    register word_t *longbase;
+    register int intersection_size = 0;
+
+    if (x->allocated > y->allocated) {
+        longbase = x->bitset;
+        shortbase = y->bitset;
+        shortend = shortbase + y->allocated;
+    } else {
+        longbase = y->bitset;
+        shortbase = x->bitset;
+        shortend = shortbase + x->allocated;
     }
-    return tot;
+
+    for (; shortbase < shortend; ++shortbase, ++longbase) {
+        intersection_size += intWordGetTot(*(shortbase) & *(longbase));
+    }
+
+    return intersection_size;
 }
 
 int intBitSetDifferenceSize(IntBitSet *const x, IntBitSet *const y) {
     register word_t *xbase;
-    register word_t *xend;
     register word_t *ybase;
-    register word_t diffWord;
-    register int tot = 0;
+    register word_t *xend;
+    register word_t *yend;
+    register int diff_size = 0;
+
     xbase = x->bitset;
-    xend = x->bitset+x->allocated;
+    xend = x->bitset + x->allocated;
     ybase = y->bitset;
-    for (; xbase < xend; ++xbase, ++ybase) {
-        diffWord = *(xbase) & ~*(ybase);
-        tot += intWordGetTot(diffWord);
+    yend = y->bitset + y->allocated;
+
+    for (; xbase < xend && ybase < yend; ++xbase, ++ybase) {
+        diff_size += intWordGetTot(*(xbase) & ~*(ybase));
     }
-    return tot;
+    if (x->allocated > y->allocated) {
+        for (; xbase < xend; ++xbase) {
+            diff_size += intWordGetTot(*(xbase));
+        }
+    }
+
+    return diff_size;
 }
 
 intbitset_cmp_t intBitSetCompare(IntBitSet *const x, IntBitSet *const y) {
     register word_t *xbase;
-    register word_t *xend;
     register word_t *ybase;
-    intbitset_cmp_t ret = {0, 0, 0, 0};
+    register word_t *xend;
+    register word_t *yend;
+    register int tot;
+    register intbitset_cmp_t ret = {0, 0, 0, 0};
 
     xbase = x->bitset;
-    xend = x->bitset+intBitSetAdaptMax(x, y);
+    xend = x->bitset + x->allocated;
     ybase = y->bitset;
-    for (; xbase < xend; ++xbase, ++ybase) {
+    yend = y->bitset + y->allocated;
+
+    for (; xbase < xend && ybase < yend; ++xbase, ++ybase) {
         ret.intersection_size += intWordGetTot(*(xbase) & *(ybase));
         ret.union_size += intWordGetTot(*(xbase) | *(ybase));
         ret.diff1_size += intWordGetTot(*(xbase) & ~*(ybase));
         ret.diff2_size += intWordGetTot(*(ybase) & ~*(xbase));
     }
+    if (x->allocated > y->allocated) {
+        for (; xbase < xend; ++xbase) {
+            tot = intWordGetTot(*(xbase));
+            ret.union_size += tot;
+            ret.diff1_size += tot;
+        }
+    } else {
+        for (; ybase < yend; ++ybase) {
+            tot = intWordGetTot(*(ybase));
+            ret.union_size += tot;
+            ret.diff2_size += tot;
+        }
+    }
+
     return ret;
 }
 
