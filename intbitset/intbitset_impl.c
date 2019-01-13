@@ -164,6 +164,24 @@ int intBitSetGetTot(IntBitSet *const bitset) {
     return bitset->tot;
 }
 
+int intWordGetTot(word_t word) {
+#ifndef __GNUC__
+    register int i;
+#endif
+    register int tot;
+#ifdef __GNUC__
+    // See:
+    // <http://stackoverflow.com/questions/109023/best-algorithm-to-count-the-number-of-set-bits-in-a-32-bit-integer>
+    tot = __builtin_popcountll(word);
+#else
+    for (i=0; i<wordbitsize; ++i)
+        if ((word & ((word_t) 1 << i)) != 0) {
+            ++tot;
+        }
+#endif
+    return tot;
+}
+
 int intBitSetGetAllocated(const IntBitSet * const bitset) {
     return bitset->allocated;
 }
@@ -271,6 +289,22 @@ IntBitSet *intBitSetUnion(IntBitSet *const x, IntBitSet *const y) {
     return ret;
 }
 
+int intBitSetUnionSize(IntBitSet *const x, IntBitSet *const y) {
+    register word_t *xbase;
+    register word_t *xend;
+    register word_t *ybase;
+    register word_t xorWord;
+    register int tot = 0;
+    xbase = x->bitset;
+    xend = x->bitset+intBitSetAdaptMax(x, y);
+    ybase = y->bitset;
+    for (; xbase < xend; ++xbase, ++ybase) {
+        xorWord = *(xbase) | *(ybase);
+        tot += intWordGetTot(xorWord);
+    }
+    return tot;
+}
+
 IntBitSet *intBitSetXor(IntBitSet *const x, IntBitSet *const y) {
     register word_t *xbase;
     register word_t *xend;
@@ -290,6 +324,22 @@ IntBitSet *intBitSetXor(IntBitSet *const x, IntBitSet *const y) {
     return ret;
 }
 
+int intBitSetXorSize(IntBitSet *const x, IntBitSet *const y) {
+    register word_t *xbase;
+    register word_t *xend;
+    register word_t *ybase;
+    register word_t xorWord;
+    register int tot = 0;
+    xbase = x->bitset;
+    xend = x->bitset+intBitSetAdaptMax(x, y);
+    ybase = y->bitset;
+    for (; xbase < xend; ++xbase, ++ybase) {
+        xorWord = *(xbase) ^ *(ybase);
+        tot += intWordGetTot(xorWord);
+    }
+    return tot;
+}
+
 IntBitSet *intBitSetIntersection(IntBitSet *const x, IntBitSet *const y) {
     register word_t *xbase;
     register word_t *xend;
@@ -307,6 +357,38 @@ IntBitSet *intBitSetIntersection(IntBitSet *const x, IntBitSet *const y) {
         *(retbase) = *(xbase) & *(ybase);
     ret->trailing_bits = x->trailing_bits & y->trailing_bits;
     return ret;
+}
+
+int intBitSetIntersectionSize(IntBitSet *const x, IntBitSet *const y) {
+    register word_t *xbase;
+    register word_t *xend;
+    register word_t *ybase;
+    register word_t intersectionWord;
+    register int tot = 0;
+    xbase = x->bitset;
+    xend = x->bitset+intBitSetAdaptMin(x, y);
+    ybase = y->bitset;
+    for (; xbase < xend; ++xbase, ++ybase) {
+        intersectionWord = *(xbase) & *(ybase);
+        tot += intWordGetTot(intersectionWord);
+    }
+    return tot;
+}
+
+int intBitSetDifferenceSize(IntBitSet *const x, IntBitSet *const y) {
+    register word_t *xbase;
+    register word_t *xend;
+    register word_t *ybase;
+    register word_t diffWord;
+    register int tot = 0;
+    xbase = x->bitset;
+    xend = x->bitset+x->allocated;
+    ybase = y->bitset;
+    for (; xbase < xend; ++xbase, ++ybase) {
+        diffWord = *(xbase) & ~*(ybase);
+        tot += intWordGetTot(diffWord);
+    }
+    return tot;
 }
 
 IntBitSet *intBitSetSub(IntBitSet *const x, IntBitSet *const y) {
