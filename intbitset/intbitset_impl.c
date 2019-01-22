@@ -458,20 +458,20 @@ intbitset_cmp_t intBitSetCompare(IntBitSet *const x, IntBitSet *const y) {
     for (; xbase < xend && ybase < yend; ++xbase, ++ybase) {
         ret.intersection_size += intWordGetTot(*(xbase) & *(ybase));
         ret.union_size += intWordGetTot(*(xbase) | *(ybase));
-        ret.diff1_size += intWordGetTot(*(xbase) & ~*(ybase));
-        ret.diff2_size += intWordGetTot(*(ybase) & ~*(xbase));
+        //ret.diff1_size += intWordGetTot(*(xbase) & ~*(ybase));
+        //ret.diff2_size += intWordGetTot(*(ybase) & ~*(xbase));
     }
     if (x->allocated > y->allocated) {
         for (; xbase < xend; ++xbase) {
             tot = intWordGetTot(*(xbase));
             ret.union_size += tot;
-            ret.diff1_size += tot;
+            //ret.diff1_size += tot;
         }
     } else {
         for (; ybase < yend; ++ybase) {
             tot = intWordGetTot(*(ybase));
             ret.union_size += tot;
-            ret.diff2_size += tot;
+            //ret.diff2_size += tot;
         }
     }
 

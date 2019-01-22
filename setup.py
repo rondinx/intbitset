@@ -49,8 +49,9 @@ setup(
     py_modules=['intbitset_helper', 'version'],
     ext_modules=[
         Extension("intbitset",
-                  ["intbitset/intbitset.c", "intbitset/intbitset_impl.c"],
-                  extra_compile_args=['-O3', '-march=core2', '-mtune=native']
+                  ["intbitset/bitset.cpp", "intbitset/intbitset.c", "intbitset/intbitset_impl.c"],
+                  extra_compile_args=['-O3', '-march=core2', '-mtune=native'],
+                  language='c++'
                   # For debug -> '-ftree-vectorizer-verbose=2'
                   )
     ],
