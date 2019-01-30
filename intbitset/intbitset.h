@@ -46,6 +46,8 @@ typedef struct {
     word_t trailing_bits;
     int tot;
     word_t *bitset;
+    unsigned int max_max_elem;
+    unsigned int min_min_elem;
 } IntBitSet;
 
 typedef struct {

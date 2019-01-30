@@ -43,6 +43,8 @@ IntBitSet *intBitSetCreate(register const int size, const bool_t trailing_bits) 
     ret->allocated = (size / wordbitsize + 1);
     ret->size = 0; // trailing_bits
     ret->trailing_bits = trailing_bits ? (word_t) ~0 : 0;
+    ret->max_max_elem = 0;
+    ret->min_min_elem = -1;
     if (trailing_bits) {
         base = ret->bitset = PyMem_Malloc(ret->allocated * wordbytesize);
         end = base + ret->allocated;
@@ -71,6 +73,8 @@ IntBitSet *intBitSetResetFromBuffer(IntBitSet *const bitset, const void *const b
     bitset->size = bitset->allocated - 1;
     memcpy(bitset->bitset, buf, bufsize);
     bitset->trailing_bits = *(bitset->bitset + bitset->allocated - 1) ? (word_t) ~0 : 0;
+    bitset->max_max_elem = 0;
+    bitset->min_min_elem = -1;
     return bitset;
 }
 
@@ -85,6 +89,8 @@ IntBitSet *intBitSetReset(IntBitSet *const bitset) {
     *bitset->bitset = 0;
     bitset->trailing_bits = 0;
     bitset->tot = 0;
+    bitset->max_max_elem = 0;
+    bitset->min_min_elem = -1;
     return bitset;
 }
 
@@ -98,6 +104,8 @@ IntBitSet *intBitSetCreateFromBuffer(const void *const buf, const Py_ssize_t buf
     ret->tot = -1;
     memcpy(ret->bitset, buf, bufsize);
     ret->trailing_bits = *(ret->bitset + ret->allocated - 1) ? (word_t) ~0 : 0;
+    ret->max_max_elem = 0;
+    ret->min_min_elem = -1;
     return ret;
 }
 
@@ -119,6 +127,8 @@ IntBitSet *intBitSetClone(const IntBitSet * const bitset) {
     ret->trailing_bits = bitset->trailing_bits;
     ret->allocated = bitset->allocated;
     ret->bitset = PyMem_Malloc(bitset->allocated * wordbytesize);
+    ret->max_max_elem = bitset->max_max_elem;
+    ret->min_min_elem = bitset->min_min_elem;
     memcpy(ret->bitset, bitset->bitset, bitset->allocated * wordbytesize);
     return ret;
 }
@@ -227,6 +237,13 @@ void intBitSetAddElem(IntBitSet *const bitset, register const unsigned int elem)
     bitset->bitset[elem / wordbitsize] |= ((word_t) 1 << (elem % wordbitsize));
     bitset->tot = -1;
     bitset->size = -1;
+    if (elem > bitset->max_max_elem) {
+         bitset->max_max_elem = elem;
+    }
+    if (elem < bitset->min_min_elem) {
+        bitset->min_min_elem = elem;
+    }
+
 }
 
 void intBitSetDelElem(IntBitSet *const bitset, register const unsigned int elem) {
@@ -400,15 +417,24 @@ int intBitSetIntersectionSize(IntBitSet *const x, IntBitSet *const y) {
     register word_t *shortend;
     register word_t *longbase;
     register int intersection_size = 0;
+    word_t start_elem, end_elem;
 
-    if (x->allocated > y->allocated) {
-        longbase = x->bitset;
-        shortbase = y->bitset;
-        shortend = shortbase + y->allocated;
+    if (x->min_min_elem < y->min_min_elem) {
+        start_elem = y->min_min_elem / wordbitsize;
     } else {
-        longbase = y->bitset;
-        shortbase = x->bitset;
-        shortend = shortbase + x->allocated;
+        start_elem = x->min_min_elem / wordbitsize;
+    }
+
+    if (x->max_max_elem > y->max_max_elem) {
+        end_elem = y->max_max_elem / wordbitsize;
+        longbase = x->bitset + start_elem;
+        shortbase = y->bitset + start_elem;
+        shortend = y->bitset + end_elem + 1;
+    } else {
+        end_elem = x->max_max_elem / wordbitsize;
+        longbase = y->bitset + start_elem;
+        shortbase = x->bitset + start_elem;
+        shortend = x->bitset + end_elem + 1;
     }
 
     for (; shortbase < shortend; ++shortbase, ++longbase) {

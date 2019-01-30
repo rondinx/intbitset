@@ -75,6 +75,8 @@ cdef extern from "intbitset.h":
         word_t trailing_bits
         int tot
         word_t *bitset
+        unsigned int max_max_elem
+        unsigned int min_min_elem
     ctypedef struct intbitset_cmp_t:
         int intersection_size
         int union_size
@@ -485,6 +487,9 @@ cdef class intbitset:
             for i in range(end + 1):
                 elem = intBitSetGetNext(self.bitset, elem)
             return elem
+
+    def get_min_max(self):
+        return self.bitset.min_min_elem, self.bitset.max_max_elem
 
     #def __getslice__(self not None, Py_ssize_t key1, Py_ssize_t key2):
         #cdef Py_ssize_t i
